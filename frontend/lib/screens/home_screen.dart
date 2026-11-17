@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../identity_service.dart';
 import 'auth_screen.dart';
 import 'enroll_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -45,6 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Vaultline'),
         backgroundColor: Colors.transparent,
         actions: [
+          IconButton(tooltip: 'Settings', icon: const Icon(Icons.settings), onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+          }),
           IconButton(tooltip: 'Reset profile', icon: const Icon(Icons.restart_alt), onPressed: _resetProfile),
           IconButton(tooltip: 'Sign out', icon: const Icon(Icons.logout), onPressed: _signOut),
         ],

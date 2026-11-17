@@ -59,6 +59,21 @@ class LocalIdentityService implements IdentityService {
 /// fields `modality` (face|voice) and `file`. Expects {"match": true|false}
 /// from /verify and any 2xx from /enroll. Add auth headers/user id as needed.
 class AppConfig {
+  /// Returns the backend URL — priority order:
+  ///   1. Runtime value saved in SharedPreferences (from SettingsScreen)
+  ///   2. Compile-time dart-define VAULTLINE_BACKEND_URL
+  ///   3. Platform default (emulator 10.0.2.2 or localhost)
+  static Future<String> backendUrlAsync() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('backend_url') ?? '';
+    if (saved.trim().isNotEmpty) return saved.trim();
+    const envValue = String.fromEnvironment('VAULTLINE_BACKEND_URL');
+    if (envValue.trim().isNotEmpty) return envValue;
+    if (Platform.isAndroid) return 'http://10.0.2.2:8001/api/auth';
+    return 'http://127.0.0.1:8001/api/auth';
+  }
+
+  /// Synchronous fallback — prefer backendUrlAsync().
   static String get backendUrl {
     const envValue = String.fromEnvironment('VAULTLINE_BACKEND_URL');
     if (envValue.trim().isNotEmpty) return envValue;
@@ -71,11 +86,18 @@ class HttpIdentityService implements IdentityService {
   HttpIdentityService(this.baseUrl);
   final String baseUrl;
 
+  /// Create an instance using the runtime-configured URL.
+  static Future<HttpIdentityService> create() async {
+    final url = await AppConfig.backendUrlAsync();
+    return HttpIdentityService(url);
+  }
+
   @override
   bool get voiceCanUnlock => true;
 
   Future<http.Response> _post(String path, Modality m, String file) async {
-    final req = http.MultipartRequest('POST', Uri.parse('$baseUrl/$path'))
+    final url = await AppConfig.backendUrlAsync();
+    final req = http.MultipartRequest('POST', Uri.parse('$url/$path'))
       ..fields['modality'] = m.name
       ..fields['userId'] = 'demo-user'
       ..files.add(await http.MultipartFile.fromPath(m.name, file));
@@ -83,7 +105,8 @@ class HttpIdentityService implements IdentityService {
   }
 
   Future<http.Response> _postPair(String path, String userId, {required String facePath, required String voicePath}) async {
-    final req = http.MultipartRequest('POST', Uri.parse('$baseUrl/$path'))
+    final url = await AppConfig.backendUrlAsync();
+    final req = http.MultipartRequest('POST', Uri.parse('$url/$path'))
       ..fields['userId'] = userId
       ..files.add(await http.MultipartFile.fromPath('face', facePath))
       ..files.add(await http.MultipartFile.fromPath('voice', voicePath));
@@ -93,7 +116,8 @@ class HttpIdentityService implements IdentityService {
   @override
   Future<bool> isEnrolled(Modality m) async {
     final userId = await AccessSettings.currentUserId();
-    final response = await http.get(Uri.parse('$baseUrl/status?modality=${m.name}&userId=${Uri.encodeQueryComponent(userId)}'));
+    final url = await AppConfig.backendUrlAsync();
+    final response = await http.get(Uri.parse('$url/status?modality=${m.name}&userId=${Uri.encodeQueryComponent(userId)}'));
     if (response.statusCode == 404) return false;
     if (response.statusCode != 200) return false;
     final decoded = jsonDecode(response.body);

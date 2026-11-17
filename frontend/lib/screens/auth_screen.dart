@@ -5,6 +5,7 @@ import '../identity_service.dart';
 import '../ui.dart';
 import 'enroll_screen.dart';
 import 'home_screen.dart';
+import 'settings_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -176,7 +177,16 @@ class _AuthScreenState extends State<AuthScreen> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  tooltip: 'Backend Settings',
+                  icon: const Icon(Icons.settings, color: Colors.white38),
+                  onPressed: () => Navigator.of(context)
+                      .push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                ),
+              ),
+              const SizedBox(height: 4),
               Text('Vaultline', textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 4),
               const Text('Confirm it\'s you to continue',
